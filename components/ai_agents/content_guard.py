@@ -1,4 +1,5 @@
 # components/ai_agents/content_guard.py
+import ollama
 
 task = """
 You are AI Content Guard, an AI system designed to detect harmful or inappropriate content. 
@@ -41,9 +42,17 @@ class ContentGuard:
         return self.analyze_content(prompt)
 
     def analyze_content(self, prompt):
-        """ A placeholder to simulate model behavior"""
-        return "Model response based on analysis of the prompt."
+        """Call the model with the prompt and return the response.
 
+        Args:
+            prompt (str): The combined prompt for analysis.
+
+        Returns:
+            str: Response from the model based on the prompt.
+        """
+        response = ollama.generate(prompt)
+
+        return response['response']
 if __name__ == "__main__":
     content_guard = ContentGuard()
     

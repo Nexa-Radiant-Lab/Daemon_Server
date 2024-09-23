@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
 import ollama
+import logging
 
-# Task, content, and career list variables defined outside the class
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
 task = """
 You are AI Career Tag Validator, an AI system designed to analyze content
 and compare it to a list of career titles provided to you.
@@ -56,9 +61,25 @@ class ContentGuard:
             career_list (list): A list of career titles to compare
             against the content.
         """
+        self.validate_input(task, content, career_list)
         self.task = task
         self.content = content
         self.career_list = career_list
+
+    def validate_input(self, task, content, career_list):
+        """
+        Validates the task, content, and career_list inputs.
+
+        Raises:
+            ValueError: If any of the inputs are invalid or empty.
+        """
+        if not task.strip():
+            raise ValueError("Task cannot be empty.")
+        if not content.strip():
+            raise ValueError("Content cannot be empty.")
+        if not career_list or not all(
+                isinstance(career, str) for career in career_list):
+            raise ValueError("Career list must contain valid career titles.")
 
     def agent(self, task_prompt=None, content_prompt=None):
         """
@@ -75,7 +96,7 @@ class ContentGuard:
             titles or 'No relevant careers found.'
 
         Raises:
-            Exception: If an error occurs during the Ollama API call.
+            ollama.OllamaError: If an error occurs during the Ollama API call.
         """
         if task_prompt:
             self.task += "\n" + task_prompt
@@ -85,7 +106,9 @@ class ContentGuard:
 
         full_prompt = (self.task + "\n" + self.content + "\n" +
                        ', '.join(self.career_list))
+
         try:
+            logging.info("Sending prompt to Ollama API...")
             response = ollama.chat(
                 model='Phi3',
                 messages=[
@@ -96,11 +119,13 @@ class ContentGuard:
                 ],
             )
             return response['message']['content']
+        except ollama.OllamaError as e:
+            logging.error(f"Ollama API error: {e}")
+            return "Failed to generate response."
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"Unexpected error occurred: {e}")
             return "Failed to generate response."
 
 
-# Initialize ContentGuard with external variables
 guard = ContentGuard(task, content, career_list)
 print(guard.agent())

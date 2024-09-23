@@ -21,7 +21,8 @@ careers found.'
 Do not provide any other explanations or context.
 """
 
-content = "This content talks about backend development, APIs, databases, and server-side programming."
+content = ("This content talks about backend development,"
+           "APIs, databases, and server-side programming.")
 
 career_list = ["Backend Developer", "Frontend Developer",
                "Database Administrator", "Data Scientist"]

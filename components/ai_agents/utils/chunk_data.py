@@ -32,19 +32,21 @@ def chunk_prompt(text: str, chunk_size: int) -> List[str]:
     chunks: List[str] = []  # Specify that chunks is a list of strings
     
     # Create a variable to hold the current chunk
-    current_chunk: str = ""  # Specify that current_chunk is a string
+    if not words:
+        return chunks
 
-    for word in words:
+    current_chunk: str = words[0]  # Start with the first word
+
+    for word in words[1:]:
         # If adding the next word exceeds the chunk size, save the current chunk
         if len(current_chunk) + len(word) + 1 > chunk_size:
-            chunks.append(current_chunk.strip())
+            chunks.append(current_chunk)
             current_chunk = word  # Start a new chunk with the current word
         else:
             current_chunk += " " + word  # Add the word to the current chunk
 
     # Add the last chunk if it's not empty
     if current_chunk:
-        chunks.append(current_chunk.strip())
+        chunks.append(current_chunk)
 
     return chunks
-

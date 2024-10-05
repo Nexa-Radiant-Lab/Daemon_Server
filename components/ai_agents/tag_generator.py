@@ -2,6 +2,7 @@
 
 import ollama
 import logging
+from utils.chunk_data import chunk_prompt  # Import the chunking utility
 
 logging.basicConfig(
     level=logging.INFO,
@@ -92,8 +93,8 @@ class ContentGuard:
             to analyze. Defaults to None.
 
         Returns:
-            str: A string containing the names of relevant career
-            titles or 'No relevant careers found.'
+            list: A list of strings indicating relevant career titles
+            for each chunk or 'No relevant careers found.'
 
         Raises:
             ollama.OllamaError: If an error occurs during the Ollama API call.
@@ -104,28 +105,36 @@ class ContentGuard:
         if content_prompt:
             self.content += "\n" + content_prompt
 
-        full_prompt = (self.task + "\n" + self.content + "\n" +
-                       ', '.join(self.career_list))
+        # Chunk the content
+        content_chunks = chunk_prompt(self.content, chunk_size=1000)  # Example chunk size of 1000 characters
+        responses = []
 
-        try:
-            logging.info("Sending prompt to Ollama API...")
-            response = ollama.chat(
-                model='Phi3',
-                messages=[
-                    {
-                        'role': 'user',
-                        'content': full_prompt
-                    }
-                ],
-            )
-            return response['message']['content']
-        except ollama.OllamaError as e:
-            logging.error(f"Ollama API error: {e}")
-            return "Failed to generate response."
-        except Exception as e:
-            logging.error(f"Unexpected error occurred: {e}")
-            return "Failed to generate response."
+        for chunk in content_chunks:
+            full_prompt = f"{self.task}\n{chunk}\n{', '.join(self.career_list)}"
+
+            try:
+                logging.info("Sending prompt to Ollama API...")
+                response = ollama.chat(
+                    model='phi3',
+                    messages=[
+                        {
+                            'role': 'user',
+                            'content': full_prompt
+                        }
+                    ],
+                )
+                responses.append(response['message']['content'])
+            except ollama.OllamaError as e:
+                logging.error(f"Ollama API error: {e}")
+                responses.append("Failed to generate response for this chunk.")
+            except Exception as e:
+                logging.error(f"Unexpected error occurred: {e}")
+                responses.append("Failed to generate response for this chunk.")
+
+        return responses  # Return responses for each chunk
 
 
 guard = ContentGuard(task, content, career_list)
-print(guard.agent())
+results = guard.agent()
+for result in results:
+    print(result)

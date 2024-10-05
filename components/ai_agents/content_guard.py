@@ -57,27 +57,27 @@ In conclusion, as artificial intelligence continues to advance, addressing the e
 
 class ContentGuard:
     """
-    AI Content Guard class designed to analyze content
-    and identify any harmful or inappropriate types.
+        AI Content Guard class designed to analyze content
+        and identify any harmful or inappropriate types.
 
-    Attributes:
-        task (str): The primary instruction for the AI model.
-        content (str): The text content to be analyzed for
-        forbidden content types.
+        Attributes:
+            task (str): The primary instruction for the AI model.
+            content (str): The text content to be analyzed for
+            forbidden content types.
 
-    Methods:
-        agent(task_prompt=None, content_prompt=None): Analyzes
-        the content based on the given prompts.
+        Methods:
+            agent(task_prompt=None, content_prompt=None): Analyzes
+            the content based on the given prompts.
     """
 
     def __init__(self, task, content):
         """
-        Initializes the ContentGuard object with external values.
+            Initializes the ContentGuard object with external values.
 
-        Args:
-            task (str): The primary instruction for the AI model.
-            content (str): The text content to be analyzed for
-            forbidden content.
+            Args:
+                task (str): The primary instruction for the AI model.
+                content (str): The text content to be analyzed for
+                forbidden content.
         """
         self.validate_input(task, content)
         self.task = task
@@ -97,18 +97,18 @@ class ContentGuard:
 
     def agent(self, task_prompt=None):
         """
-        Analyzes the content based on the given prompts.
+            Analyzes the content based on the given prompts.
 
-        Args:
-            task_prompt (str, optional): Additional instructions
-            to append to the main task. Defaults to None.
+            Args:
+                task_prompt (str, optional): Additional instructions
+                to append to the main task. Defaults to None.
 
-        Returns:
-            list: A list of strings indicating whether forbidden content
-            was found or not for each chunk.
+            Returns:
+                list: A list of strings indicating whether forbidden content
+                was found or not for each chunk.
 
-        Raises:
-            ollama.OllamaError: If an error occurs during the Ollama API call.
+            Raises:
+                ollama.OllamaError: If an error occurs during the Ollama API call.
         """
         if task_prompt:
             self.task += "\n" + task_prompt
@@ -123,7 +123,7 @@ class ContentGuard:
             try:
                 logging.info("Sending prompt to Ollama API...")
                 response = ollama.chat(
-                    model='Phi3',
+                    model='phi3',
                     messages=[
                         {
                             'role': 'user',
@@ -132,9 +132,6 @@ class ContentGuard:
                     ],
                 )
                 responses.append(response['message']['content'])
-            except ollama.OllamaError as e:
-                logging.error(f"Ollama API error: {e}")
-                responses.append("Failed to generate response for this chunk.")
             except Exception as e:
                 logging.error(f"Unexpected error occurred: {e}")
                 responses.append("Failed to generate response for this chunk.")

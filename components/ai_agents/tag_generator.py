@@ -1,6 +1,7 @@
 """
 This module defines the TagGenerator AI agent, which analyzes content to generate relevant career tags.
 """
+
 import ollama
 import logging
 from utils.chunk_data import chunk_prompt  # Import the chunking utility

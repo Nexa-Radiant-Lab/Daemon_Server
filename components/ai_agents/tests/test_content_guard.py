@@ -1,61 +1,95 @@
+"""
+    Unit tests for the ContentGuard class in the content_guard module.
+"""
+
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import sys
 import os
-import ollama
 
-# Ensure the tag_generator module can be imported
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Adjust the sys.path to include the path where content_guard.py is located
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from tag_generator import ContentGuard  # Adjust the import according to your project structure
+from content_guard import ContentGuard
+
 
 class TestContentGuard(unittest.TestCase):
-    
+
     def setUp(self):
-        self.task = "You are an AI Career Tag Validator."
-        self.career_list = [
-            "Backend Developer", 
-            "Frontend Developer", 
-            "Database Administrator", 
-            "Data Scientist"
-        ]
-        self.dummy_content = "This is a sample content for testing career tags." 
-        self.guard = ContentGuard(self.task, self.dummy_content, self.career_list)
-        self.harmful_content = "This message promotes hate speech and discrimination against certain groups."
-        self.empty_content = ""  # For testing empty content scenarios
+        """
+        Sets up the necessary inputs for the tests.
+        """
+        self.task = """
+        You are AI Content Guard, an AI system designed to detect harmful
+        or inappropriate content. Your role is to analyze data or content and
+        identify forbidden content types.
+        """
+        self.content = "This is a test content."
 
-    @patch('ollama.chat')
-    def test_valid_content(self, mock_chat):
-        mock_chat.return_value = {'message': {'content': 'Backend Developer, Database Administrator'}}
-        self.guard.content = "This content discusses backend development and databases."
-        result = self.guard.agent()  
-        self.assertEqual(result, 'Backend Developer, Database Administrator')
+    def test_initialization(self):
+        """
+        Test the initialization of the ContentGuard object.
+        """
+        guard = ContentGuard(self.task, self.content)
+        self.assertEqual(guard.task, self.task)
+        self.assertEqual(guard.content, self.content)
 
-    @patch('ollama.chat')
-    def test_harmful_content(self, mock_chat):
-        mock_chat.return_value = {'message': {'content': 'No relevant careers found.'}}
-        self.guard.content = self.harmful_content
-        result = self.guard.agent()  
-        self.assertEqual(result, 'No relevant careers found.')
+    def test_invalid_task(self):
+        """
+        Test that initializing with an empty task raises ValueError.
+        """
+        with self.assertRaises(ValueError):
+            ContentGuard("", self.content)
 
+    def test_invalid_content(self):
+        """
+        Test that initializing with empty content raises ValueError.
+        """
+        with self.assertRaises(ValueError):
+            ContentGuard(self.task, "")
+
+    @patch('utils.chunk_data.chunk_prompt')
     @patch('ollama.chat')
-    def test_empty_content(self, mock_chat):
-        """Test the handling of empty content input."""
+    def test_agent_method(self, mock_ollama_chat, mock_chunk_prompt):
+        """
+        Test the agent method's functionality.
+        Mocks the Ollama API call and chunk_prompt function.
+        """
+        # Mock chunk_prompt to return a predefined chunk
+        mock_chunk_prompt.return_value = ["This is a chunk of content."]
         
-        # Mock chat return value for empty content
-        mock_chat.return_value = {'message': {'content': 'Failed to generate response.'}}  # Return as dictionary
+        # Mock ollama.chat to return a fake response
+        mock_ollama_chat.return_value = {
+            'message': {
+                'content': "No, no forbidden content found."
+            }
+        }
+        
+        guard = ContentGuard(self.task, self.content)
+        result = guard.agent()
+        
+        # Ensure chunk_prompt was called correctly
+        mock_chunk_prompt.assert_called_once_with(self.content, chunk_size=1000)
+        
+        # Ensure ollama.chat was called with the expected prompt
+        mock_ollama_chat.assert_called_once_with(
+            model='phi3',
+            messages=[
+                {'role': 'user', 'content': f"{self.task}\nThis is a chunk of content."}
+            ]
+        )
+        
+        # Check that the result is as expected
+        self.assertEqual(result, ["No, no forbidden content found."])
 
-        result = self.guard.agent("")  # Ensure this method handles empty content
-        self.assertEqual(result, "Failed to generate response.")
-
-    @patch('ollama.chat')
-    def test_no_careers_found(self, mock_chat):
-        mock_chat.return_value = {'message': {'content': 'No relevant careers found.'}}
-        self.guard.content = "This content does not mention any valid career."
-        result = self.guard.agent()  
-        self.assertEqual(result, 'No relevant careers found.')
-
-    
-
-if __name__ == '__main__':
-    unittest.main()
+    @patch('ollama.chat', side_effect=Exception("API Error"))
+    def test_agent_method_ollama_error(self, mock_ollama_chat):
+        """
+        Test that the agent method raises an error when the Ollama API fails.
+        """
+        guard = ContentGuard(self.task, self.content)
+        
+        with self.assertRaises(Exception) as context:
+            guard.agent()
+        
+        self.assertIn("API Error", str(context.exception))

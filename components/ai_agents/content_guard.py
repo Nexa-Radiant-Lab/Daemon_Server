@@ -8,7 +8,7 @@ from utils.chunk_data import chunk_prompt
 
 # Define the log directory and file
 log_dir = "/var/log/NRL-product-1/Daemon_Server"
-log_file = "ai_agent.log"
+log_file = "ai_agents.log"
 log_path = os.path.join(log_dir, log_file)
 
 # Ensure the log directory exists, create it if necessary

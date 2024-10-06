@@ -53,7 +53,7 @@ career_list = ["Backend Developer", "Frontend Developer",
 
 class TagGenerator:
     """
-    AI Career Tag Validator class designed to analyze content
+    AI Career Tag Generator class designed to analyze content
     and match it with relevant career titles.
 
     Attributes:

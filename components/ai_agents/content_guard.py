@@ -6,7 +6,7 @@ import ollama
 import logging
 from utils.chunk_data import chunk_prompt
 
-# Define the log directory and file
+# Define the log directory and file path
 log_dir = "/var/log/NRL-product-1/Daemon_Server"
 log_file = "ai_agents.log"
 log_path = os.path.join(log_dir, log_file)

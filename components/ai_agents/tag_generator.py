@@ -1,15 +1,31 @@
-#!/usr/bin/env python3
+"""
+An AI agent module that creates career tags based on provided content or feeds.
+"""
 
 import ollama
 import logging
+from utils.chunk_data import chunk_prompt  # Import the chunking utility
 
+# Define the log directory and file
+log_dir = "/var/log/NRL-product-1/Daemon_Server"
+log_file = "ai_agents.log"
+log_path = os.path.join(log_dir, log_file)
+
+# Ensure the log directory exists, create it if necessary
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Configure logging to output to the specified log file
 logging.basicConfig(
+    filename=log_path,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+logging.info("Logging TagGenerator...")
+
 task = """
-You are AI Career Tag Validator, an AI system designed to analyze content
+You are AI Career Tag generator, an AI system designed to analyze content
 and compare it to a list of career titles provided to you.
 Your role is to evaluate the content, identify the key skills, topics,
 or themes, and determine which careers from the provided list are
@@ -23,19 +39,21 @@ Identify which career titles from the list are relevant to the content.
 Respond with the names of the relevant career titles from the list and only
 the career-list, or if none are relevant, respond with 'No relevant
 careers found.'
-Do not provide any other explanations or context.
+
+Below is the content to be analyzed:
+
 """
 
 content = ("This content talks about backend development,"
-           "APIs, databases, and server-side programming.")
+            "APIs, databases, and server-side programming.")
 
 career_list = ["Backend Developer", "Frontend Developer",
-               "Database Administrator", "Data Scientist"]
+                "Database Administrator", "Data Scientist"]
 
 
-class ContentGuard:
+class TagGenerator:
     """
-    AI Career Tag Validator class designed to analyze content
+    AI Career Tag Generator class designed to analyze content
     and match it with relevant career titles.
 
     Attributes:
@@ -92,11 +110,11 @@ class ContentGuard:
             to analyze. Defaults to None.
 
         Returns:
-            str: A string containing the names of relevant career
-            titles or 'No relevant careers found.'
+            list: A list of strings indicating relevant career titles
+            for each chunk or 'No relevant careers found.'
 
         Raises:
-            ollama.OllamaError: If an error occurs during the Ollama API call.
+            ollama.ResponseError: If an error occurs during the Ollama API call.
         """
         if task_prompt:
             self.task += "\n" + task_prompt
@@ -104,28 +122,36 @@ class ContentGuard:
         if content_prompt:
             self.content += "\n" + content_prompt
 
-        full_prompt = (self.task + "\n" + self.content + "\n" +
-                       ', '.join(self.career_list))
+        # Chunk the content
+        content_chunks = chunk_prompt(self.content, chunk_size=1000)  # Example chunk size of 1000 characters
+        responses = []
 
-        try:
-            logging.info("Sending prompt to Ollama API...")
-            response = ollama.chat(
-                model='Phi3',
-                messages=[
-                    {
-                        'role': 'user',
-                        'content': full_prompt
-                    }
-                ],
-            )
-            return response['message']['content']
-        except ollama.OllamaError as e:
-            logging.error(f"Ollama API error: {e}")
-            return "Failed to generate response."
-        except Exception as e:
-            logging.error(f"Unexpected error occurred: {e}")
-            return "Failed to generate response."
+        for chunk in content_chunks:
+            full_prompt = f"{self.task}\n{chunk}\n{', '.join(self.career_list)}"
+
+            try:
+                logging.info("Sending prompt to Ollama API...")
+                response = ollama.chat(
+                    model='phi3',
+                    messages=[
+                        {
+                            'role': 'user',
+                            'content': full_prompt
+                        }
+                    ],
+                )
+                responses.append(response['message']['content'])
+            except ollama.ResponseError as e:
+                logging.error(f"Ollama API error: {e}")
+                raise e
+            except Exception as e:
+                logging.error(f"Unexpected error occurred: {e}")
+                raise  e
+
+        return responses  # Return responses for each chunk
 
 
-guard = ContentGuard(task, content, career_list)
-print(guard.agent())
+guard = TagGenerator(task, content, career_list)
+results = guard.agent()
+for result in results:
+    print(result)

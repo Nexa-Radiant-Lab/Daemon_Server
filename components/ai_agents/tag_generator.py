@@ -1,3 +1,7 @@
+"""
+An AI agent module that creates career tags based on provided content or feeds.
+"""
+
 import ollama
 import logging
 from utils.chunk_data import chunk_prompt  # Import the chunking utility
@@ -41,10 +45,10 @@ Below is the content to be analyzed:
 """
 
 content = ("This content talks about backend development,"
-           "APIs, databases, and server-side programming.")
+            "APIs, databases, and server-side programming.")
 
 career_list = ["Backend Developer", "Frontend Developer",
-               "Database Administrator", "Data Scientist"]
+                "Database Administrator", "Data Scientist"]
 
 
 class TagGenerator:

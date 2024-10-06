@@ -1,18 +1,27 @@
-"""
-This module defines the TagGenerator AI agent, which analyzes content to generate relevant career tags.
-"""
-
 import ollama
 import logging
 from utils.chunk_data import chunk_prompt  # Import the chunking utility
 
+# Define the log directory and file
+log_dir = "/var/log/NRL-product-1/Daemon_Server"
+log_file = "ai_agent.log"
+log_path = os.path.join(log_dir, log_file)
+
+# Ensure the log directory exists, create it if necessary
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Configure logging to output to the specified log file
 logging.basicConfig(
+    filename=log_path,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+logging.info("Logging TagGenerator...")
+
 task = """
-You are AI Career Tag Validator, an AI system designed to analyze content
+You are AI Career Tag generator, an AI system designed to analyze content
 and compare it to a list of career titles provided to you.
 Your role is to evaluate the content, identify the key skills, topics,
 or themes, and determine which careers from the provided list are
@@ -26,7 +35,9 @@ Identify which career titles from the list are relevant to the content.
 Respond with the names of the relevant career titles from the list and only
 the career-list, or if none are relevant, respond with 'No relevant
 careers found.'
-Do not provide any other explanations or context.
+
+Below is the content to be analyzed:
+
 """
 
 content = ("This content talks about backend development,"
@@ -36,7 +47,7 @@ career_list = ["Backend Developer", "Frontend Developer",
                "Database Administrator", "Data Scientist"]
 
 
-class ContentGuard:
+class TagGenerator:
     """
     AI Career Tag Validator class designed to analyze content
     and match it with relevant career titles.
@@ -99,7 +110,7 @@ class ContentGuard:
             for each chunk or 'No relevant careers found.'
 
         Raises:
-            ollama.OllamaError: If an error occurs during the Ollama API call.
+            ollama.ResponseError: If an error occurs during the Ollama API call.
         """
         if task_prompt:
             self.task += "\n" + task_prompt
@@ -126,17 +137,17 @@ class ContentGuard:
                     ],
                 )
                 responses.append(response['message']['content'])
-            except ollama.OllamaError as e:
+            except ollama.ResponseError as e:
                 logging.error(f"Ollama API error: {e}")
-                responses.append("Failed to generate response for this chunk.")
+                raise e
             except Exception as e:
                 logging.error(f"Unexpected error occurred: {e}")
-                responses.append("Failed to generate response for this chunk.")
+                raise  e
 
         return responses  # Return responses for each chunk
 
 
-guard = ContentGuard(task, content, career_list)
+guard = TagGenerator(task, content, career_list)
 results = guard.agent()
 for result in results:
     print(result)

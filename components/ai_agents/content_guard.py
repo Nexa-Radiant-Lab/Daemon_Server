@@ -6,10 +6,23 @@ import ollama
 import logging
 from utils.chunk_data import chunk_prompt
 
+# Define the log directory and file
+log_dir = "/var/log/NRL-product-1/Daemon_Server"
+log_file = "ai_agent.log"
+log_path = os.path.join(log_dir, log_file)
+
+# Ensure the log directory exists, create it if necessary
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Configure logging to output to the specified log file
 logging.basicConfig(
+    filename=log_path,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
+logging.info("Logging ContentGuard...")
 
 task = """
 You are AI Content Guard, an AI system designed to detect harmful or
@@ -34,6 +47,9 @@ respond with 'Yes' followed by the specific types of forbidden content
 found (e.g., 'Yes: Pornographic material, Hate speech'). If no forbidden
 content is found, respond with 'No, no forbidden content found.' Do not
 provide any additional explanation or context.
+
+Below, the is content to analyse
+
 """
 
 content = """
@@ -54,6 +70,7 @@ Furthermore, education plays a pivotal role in fostering ethical AI practices. I
 In conclusion, as artificial intelligence continues to advance, addressing the ethical implications of its use is paramount. By prioritizing fairness, transparency, accountability, and collaboration, we can harness the benefits of AI while minimizing the risks. The journey toward responsible AI development is ongoing, and it requires the collective efforts of all stakeholders involved. Together, we can shape a future where AI serves humanity positively and equitably.
 
 """
+
 
 class ContentGuard:
     """
@@ -132,9 +149,13 @@ class ContentGuard:
                     ],
                 )
                 responses.append(response['message']['content'])
+                logging.info("Appending the model's response from the processed chunked prompt to the stack containing all responses.")
+            except ollama.ResponseError as e:
+                logging.error(f"Ollama API error: {e}")
+                raise e
             except Exception as e:
                 logging.error(f"Unexpected error occurred: {e}")
-                responses.append("Failed to generate response for this chunk.")
+                raise  e
 
         return responses  # Return responses for each chunk
 
